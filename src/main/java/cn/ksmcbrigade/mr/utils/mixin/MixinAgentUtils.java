@@ -90,13 +90,14 @@ public class MixinAgentUtils {
     }
 
     public static void setSystemConfigs(){
+        if (!Boolean.getBoolean("mixinruntime.debug")) return;
         System.setProperty("mixin.hotSwap", "true");
         System.setProperty("mixin.debug.hotswap","true");
         System.setProperty("mixin.debug.export", "true");
         System.setProperty("mixin.dumpTargetOnFailure", "true");
         System.setProperty("mixin.debug","true");
         System.setProperty("mixin.debug.export.decompile","true");
-        System.setProperty("mixin.debug.export.path=","./mixin_debug");
+        System.setProperty("mixin.debug.export.path","./mixin_debug");
         System.setProperty("mixin.logging.level","DEBUG");
         System.setProperty("mixin.debug.verbose","true");
     }

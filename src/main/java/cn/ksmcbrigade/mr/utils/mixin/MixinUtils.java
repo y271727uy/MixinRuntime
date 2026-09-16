@@ -94,7 +94,7 @@ public class MixinUtils {
         for (String s : MixinConfigUtils.getGlobalMixinList(iMixinConfig)) {
             try {
                 for (Class<?> targetClass : getTargetClasses(Class.forName(s))) {
-                    Constants.LOGGER.info("mixin utils redefining {}",targetClass);
+                    Constants.LOGGER.debug("mixin utils redefining {}",targetClass);
                     byte[] bytes = MixinTransformerUtils.transform(targetClass);
                     //FileUtils.writeByteArrayToFile(new File(targetClass.getName()+".class"),bytes);
                     Objects.requireNonNull(MixinAgentUtils.getInst()).redefineClasses(
@@ -104,8 +104,10 @@ public class MixinUtils {
                             )
                     );
                 }
+            } catch (UnsupportedOperationException e) {
+                Constants.LOGGER.warn("Skipping runtime mixin for {} because the JVM rejected a structural redefinition", s);
             } catch (Throwable e) {
-                e.printStackTrace();
+                Constants.LOGGER.error("Failed to apply runtime mixin {}", s, e);
             }
         }
     }
@@ -119,7 +121,7 @@ public class MixinUtils {
                                 MixinTransformerUtils.transform(targetClass)
                         )
                 );
-            } catch (ClassNotFoundException | UnmodifiableClassException e) {
+            } catch (ClassNotFoundException | UnmodifiableClassException | UnsupportedOperationException e) {
                 Constants.LOGGER.error("Failed to redefine class: {}",targetClass);
             }
         }

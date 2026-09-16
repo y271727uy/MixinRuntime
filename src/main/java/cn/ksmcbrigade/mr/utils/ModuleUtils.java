@@ -5,8 +5,35 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.*;
 import java.util.stream.Collectors;
+import cpw.mods.modlauncher.Launcher;
+import cpw.mods.modlauncher.ModuleLayerHandler;
 
 public class ModuleUtils {
+
+    /**
+     * ModLauncher puts Forge and mod modules in completed game layers rather
+     * than in Java's boot layer. Include both sets when changing module access.
+     */
+    private static Set<Module> allRuntimeModules() {
+        Set<Module> modules = new HashSet<>(ModuleLayer.boot().modules());
+        try {
+            ModuleLayerHandler handler = UnsafeUtils.getFieldValue(
+                    Launcher.INSTANCE, "moduleLayerHandler", ModuleLayerHandler.class);
+            EnumMap<?, ?> completedLayers = UnsafeUtils.getFieldValue(
+                    handler, "completedLayers", EnumMap.class);
+            if (completedLayers != null) {
+                for (Object layerInfo : completedLayers.values()) {
+                    ModuleLayer layer = UnsafeUtils.getFieldValue(layerInfo, "layer", ModuleLayer.class);
+                    if (layer != null) {
+                        modules.addAll(layer.modules());
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+            // The boot layer is still useful on launchers without completed game layers.
+        }
+        return modules;
+    }
 
     private static final MethodHandles.Lookup IMPL_LOOKUP =
             UnsafeUtils.getFieldValue(MethodHandles.Lookup.class, "IMPL_LOOKUP", MethodHandles.Lookup.class);
@@ -32,7 +59,7 @@ public class ModuleUtils {
      * 给所有模块添加对指定模块的 reads 和 opens
      */
     public static void openAllModulesToModule(Module targetModule) {
-        ModuleLayer.boot().modules().forEach(module -> {
+        allRuntimeModules().forEach(module -> {
             if (module != targetModule) {
                 addReads(module, targetModule);
 
@@ -49,7 +76,7 @@ public class ModuleUtils {
      * 给指定模块添加对所有模块的 reads 和 opens
      */
     public static void openModuleToAllModules(Module sourceModule) {
-        ModuleLayer.boot().modules().forEach(module -> {
+        allRuntimeModules().forEach(module -> {
             if (module != sourceModule) {
                 addReads(sourceModule, module);
 
@@ -66,7 +93,7 @@ public class ModuleUtils {
      * 给所有模块互相开放所有包（最暴力的方式）
      */
     public static void openAllModules() {
-        Set<Module> allModules = ModuleLayer.boot().modules();
+        Set<Module> allModules = allRuntimeModules();
 
         for (Module sourceModule : allModules) {
             for (Module targetModule : allModules) {
@@ -103,36 +130,32 @@ public class ModuleUtils {
         System.out.println("[ModuleUtils] Fixing LWJGL <-> Mixin module access...");
 
         // 需要修复的 LWJGL 模块
-        List<String> lwjglModules = ModuleLayer.boot().modules().stream()
-                .map(Module::getName)
-                .filter(name -> name.startsWith("org.lwjgl"))
+        Set<Module> allModules = allRuntimeModules();
+        List<Module> lwjglModules = allModules.stream()
+                .filter(module -> module.getName() != null && module.getName().startsWith("org.lwjgl"))
                 .collect(Collectors.toList());
 
         // Mixin 相关模块
-        List<String> mixinModules = ModuleLayer.boot().modules().stream()
-                .map(Module::getName)
-                .filter(name -> name.contains("mixin") || name.contains("sponge"))
+        List<Module> mixinModules = allModules.stream()
+                .filter(module -> module.getName() != null
+                        && (module.getName().contains("mixin") || module.getName().contains("sponge")))
                 .collect(Collectors.toList());
 
         // 互相开放
-        for (String lwjglModuleName : lwjglModules) {
-            ModuleLayer.boot().findModule(lwjglModuleName).ifPresent(lwjglModule -> {
-                for (String mixinModuleName : mixinModules) {
-                    ModuleLayer.boot().findModule(mixinModuleName).ifPresent(mixinModule -> {
-                        addReads(lwjglModule, mixinModule);
-                        lwjglModule.getDescriptor().packages().forEach(pkg -> {
-                            addOpens(lwjglModule, pkg, mixinModule);
-                            addExports(lwjglModule, pkg, mixinModule);
-                        });
-                        System.out.println("[ModuleUtils] Opened " + lwjglModuleName + " -> " + mixinModuleName);
-                    });
-                }
-            });
+        for (Module lwjglModule : lwjglModules) {
+            for (Module mixinModule : mixinModules) {
+                addReads(lwjglModule, mixinModule);
+                lwjglModule.getDescriptor().packages().forEach(pkg -> {
+                    addOpens(lwjglModule, pkg, mixinModule);
+                    addExports(lwjglModule, pkg, mixinModule);
+                });
+                System.out.println("[ModuleUtils] Opened " + lwjglModule.getName() + " -> " + mixinModule.getName());
+            }
         }
 
         // 也给当前模块开放所有模块
         Module currentModule = ModuleUtils.class.getModule();
-        ModuleLayer.boot().modules().forEach(module -> {
+        allModules.forEach(module -> {
             if (module != currentModule) {
                 addReads(currentModule, module);
                 addReads(module, currentModule);

@@ -18,8 +18,8 @@ dependencies {
 jar{
     manifest {
         getAttributes().putAll([
-                "Agent-Class"   : "cn.ksmcbrigade.mr.agent.MixinRuntimeAgent",
-                "Premain-Class" : "cn.ksmcbrigade.mr.agent.MixinRuntimeAgent",
+                "Agent-Class"   : "cn.ksmcbrigade.mr.agent.MixinRuntimeAgentBootstrap",
+                "Premain-Class" : "cn.ksmcbrigade.mr.agent.MixinRuntimeAgentBootstrap",
                 "Can-Redefine-Classes"  : true,
                 "Can-Retransform-Classes"   : true,
         ])

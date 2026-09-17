@@ -41,7 +41,6 @@ public class MixinRuntimePlugin implements IMixinConfigPlugin {
         }
 
         Constants.LOGGER.info("Opening modules...");
-        ModuleUtils.fixLwjglMixinAccess();
         ModuleUtils.openAllModules();
 
         try {
@@ -60,7 +59,7 @@ public class MixinRuntimePlugin implements IMixinConfigPlugin {
 
     @Override
     public String getRefMapperConfig() {
-        return "";
+        return null;
     }
 
     @Override

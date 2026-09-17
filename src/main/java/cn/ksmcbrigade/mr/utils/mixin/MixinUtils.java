@@ -1,6 +1,7 @@
 package cn.ksmcbrigade.mr.utils.mixin;
 
 import cn.ksmcbrigade.mr.Constants;
+import cn.ksmcbrigade.mr.transformers.compat.FastEventListenerFactoryTransformer;
 import cn.ksmcbrigade.mr.transformers.MixinProcessorTransformer;
 import cn.ksmcbrigade.mr.transformers.ModLauncherClassTrackerTransformer;
 import cn.ksmcbrigade.mr.transformers.debug.ModuleClassLoaderTransformer;
@@ -39,6 +40,7 @@ public class MixinUtils {
         if(MixinUtils.class.getClassLoader() instanceof TransformingClassLoader loader)
             System.getProperties().put("transforming_class_loader",loader);
 
+        inst.addTransformer(new FastEventListenerFactoryTransformer(), true);
         inst.addTransformer(new ModuleClassLoaderTransformer(),true);
 
         inst.addTransformer(new ModLauncherClassTrackerTransformer(),true);

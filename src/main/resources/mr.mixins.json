@@ -3,16 +3,7 @@
   "minVersion": "0.8",
   "package": "cn.ksmcbrigade.mr.mixin",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "mr.refmap.json",
   "plugin": "cn.ksmcbrigade.mr.mixin.MixinRuntimePlugin",
-  "mixins": [
-    "test.GL11Mixin"
-  ],
-  "client": [],
-  "injectors": {
-    "defaultRequire": 1
-  },
-  "overwrites": {
-    "requireAnnotations": true
-  }
+  "mixins": [],
+  "client": []
 }

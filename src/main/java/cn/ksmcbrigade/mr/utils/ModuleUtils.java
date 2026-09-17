@@ -4,7 +4,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.*;
-import java.util.stream.Collectors;
 import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.ModuleLayerHandler;
 
@@ -120,46 +119,6 @@ public class ModuleUtils {
                 addOpens(sourceModule, packageName, targetModule);
                 addExports(sourceModule, packageName, targetModule);
             });
-        });
-    }
-
-    /**
-     * 修复 LWJGL 和 Mixin 之间的模块访问
-     */
-    public static void fixLwjglMixinAccess() {
-        System.out.println("[ModuleUtils] Fixing LWJGL <-> Mixin module access...");
-
-        // 需要修复的 LWJGL 模块
-        Set<Module> allModules = allRuntimeModules();
-        List<Module> lwjglModules = allModules.stream()
-                .filter(module -> module.getName() != null && module.getName().startsWith("org.lwjgl"))
-                .collect(Collectors.toList());
-
-        // Mixin 相关模块
-        List<Module> mixinModules = allModules.stream()
-                .filter(module -> module.getName() != null
-                        && (module.getName().contains("mixin") || module.getName().contains("sponge")))
-                .collect(Collectors.toList());
-
-        // 互相开放
-        for (Module lwjglModule : lwjglModules) {
-            for (Module mixinModule : mixinModules) {
-                addReads(lwjglModule, mixinModule);
-                lwjglModule.getDescriptor().packages().forEach(pkg -> {
-                    addOpens(lwjglModule, pkg, mixinModule);
-                    addExports(lwjglModule, pkg, mixinModule);
-                });
-                System.out.println("[ModuleUtils] Opened " + lwjglModule.getName() + " -> " + mixinModule.getName());
-            }
-        }
-
-        // 也给当前模块开放所有模块
-        Module currentModule = ModuleUtils.class.getModule();
-        allModules.forEach(module -> {
-            if (module != currentModule) {
-                addReads(currentModule, module);
-                addReads(module, currentModule);
-            }
         });
     }
 
